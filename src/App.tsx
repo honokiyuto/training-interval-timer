@@ -9,9 +9,11 @@ export default function App() {
   const [state, setState] = useState<TimerState>('idle');
   const [isRunning, setIsRunning] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [startWithInterval, setStartWithInterval] = useState(false);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const intervalRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const lastPlayedSecondRef = useRef<number | null>(null);
 
   // AudioContextの初期化
   useEffect(() => {
@@ -25,10 +27,15 @@ export default function App() {
   }, []);
 
   // 音を鳴らす関数
-  const playBeep = (frequency: number = 800, duration: number = 200) => {
+  const playBeep = (
+    frequency: number = 800,
+    duration: number = 200,
+    delay: number = 0
+  ) => {
     if (!soundEnabled || !audioContextRef.current) return;
 
     const audioContext = audioContextRef.current;
+    const startTime = audioContext.currentTime + delay / 1000;
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
 
@@ -38,14 +45,26 @@ export default function App() {
     oscillator.frequency.value = frequency;
     oscillator.type = 'sine';
 
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.setValueAtTime(0.3, startTime);
     gainNode.gain.exponentialRampToValueAtTime(
       0.01,
-      audioContext.currentTime + duration / 1000
+      startTime + duration / 1000
     );
 
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + duration / 1000);
+    oscillator.start(startTime);
+    oscillator.stop(startTime + duration / 1000);
+  };
+
+  // 連続で音を鳴らす関数
+  const playBeeps = (
+    count: number,
+    frequency: number = 800,
+    duration: number = 200,
+    interval: number = 150
+  ) => {
+    for (let i = 0; i < count; i++) {
+      playBeep(frequency, duration, i * interval);
+    }
   };
 
   // URLクエリパラメータから初期値を読み込む
@@ -54,6 +73,7 @@ export default function App() {
     const countdown = params.get('countdown');
     const interval = params.get('interval');
     const sound = params.get('sound');
+    const startWith = params.get('startWith');
     if (countdown) {
       const val = parseInt(countdown, 10);
       if (!isNaN(val) && val >= 0 && val <= 120) {
@@ -69,6 +89,9 @@ export default function App() {
     if (sound !== null) {
       setSoundEnabled(sound === 'true');
     }
+    if (startWith !== null) {
+      setStartWithInterval(startWith === 'interval');
+    }
   }, []);
 
   // URLクエリパラメータを更新
@@ -77,8 +100,9 @@ export default function App() {
     params.set('countdown', countdownSeconds.toString());
     params.set('interval', intervalSeconds.toString());
     params.set('sound', soundEnabled.toString());
+    params.set('startWith', startWithInterval ? 'interval' : 'countdown');
     window.history.replaceState({}, '', `?${params.toString()}`);
-  }, [countdownSeconds, intervalSeconds, soundEnabled]);
+  }, [countdownSeconds, intervalSeconds, soundEnabled, startWithInterval]);
 
   // Wake Lock APIで画面を常にONに保つ
   useEffect(() => {
@@ -124,29 +148,44 @@ export default function App() {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+      lastPlayedSecondRef.current = null;
       return;
     }
 
     intervalRef.current = window.setInterval(() => {
       setCurrentTime((prev) => {
-        if (prev <= 1) {
-          // カウントダウン終了
+        const newTime = prev - 1;
+
+        // 3秒前になったらカウントダウンの音を鳴らす
+        if (newTime === 3 && lastPlayedSecondRef.current !== 3) {
+          playBeep(1000, 100); // カウントダウン音
+          lastPlayedSecondRef.current = 3;
+        } else if (newTime === 2 && lastPlayedSecondRef.current !== 2) {
+          playBeep(1000, 100);
+          lastPlayedSecondRef.current = 2;
+        } else if (newTime === 1 && lastPlayedSecondRef.current !== 1) {
+          playBeep(1000, 100);
+          lastPlayedSecondRef.current = 1;
+        }
+
+        if (newTime <= 0) {
+          // カウントダウン終了（インターバル開始）- 1回の音
           if (state === 'countdown') {
-            playBeep(800, 300); // 高い音
+            playBeep(800, 300);
             setState('interval');
-            setCurrentTime(intervalSeconds);
+            lastPlayedSecondRef.current = null;
             return intervalSeconds;
           }
-          // インターバル終了
+          // インターバル終了（カウントダウン開始）- 連続2回の音
           if (state === 'interval') {
-            playBeep(600, 300); // 少し低い音
+            playBeeps(2, 600, 300, 200);
             setState('countdown');
-            setCurrentTime(countdownSeconds);
+            lastPlayedSecondRef.current = null;
             return countdownSeconds;
           }
           return 0;
         }
-        return prev - 1;
+        return newTime;
       });
     }, 1000);
 
@@ -159,8 +198,14 @@ export default function App() {
 
   const handleStart = () => {
     setIsRunning(true);
-    setState('countdown');
-    setCurrentTime(countdownSeconds);
+    if (startWithInterval) {
+      setState('interval');
+      setCurrentTime(intervalSeconds);
+    } else {
+      setState('countdown');
+      setCurrentTime(countdownSeconds);
+    }
+    lastPlayedSecondRef.current = null;
   };
 
   const handleStop = () => {
@@ -239,19 +284,68 @@ export default function App() {
           </div>
         </div>
 
-        {/* 音の設定 */}
-        <div className="mb-6">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={soundEnabled}
-              onChange={(e) => setSoundEnabled(e.target.checked)}
-              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-            />
-            <span className="text-sm font-medium text-gray-700">
-              音を鳴らす
-            </span>
-          </label>
+        {/* 設定 */}
+        <div className="space-y-4 mb-6">
+          {/* 音の設定 - トグルスイッチ */}
+          <div>
+            <label className="flex items-center justify-between cursor-pointer">
+              <span className="text-sm font-medium text-gray-700">
+                音を鳴らす
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={soundEnabled}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setSoundEnabled(!soundEnabled);
+                }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer active:scale-95 ${
+                  soundEnabled ? 'bg-blue-600' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out ${
+                    soundEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+            </label>
+          </div>
+
+          {/* 開始順序の選択 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              開始順序
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setStartWithInterval(false)}
+                disabled={isRunning}
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                  !startWithInterval
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                カウントダウンから
+              </button>
+              <button
+                type="button"
+                onClick={() => setStartWithInterval(true)}
+                disabled={isRunning}
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                  startWithInterval
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                インターバルから
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* スライダーコントロール */}
