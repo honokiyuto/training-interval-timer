@@ -26,13 +26,27 @@ export default function App() {
     };
   }, []);
 
+  // AudioContextを有効化する関数（モバイル対応）
+  const ensureAudioContext = async () => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext ||
+        (window as any).webkitAudioContext)();
+    }
+    if (audioContextRef.current.state === 'suspended') {
+      await audioContextRef.current.resume();
+    }
+  };
+
   // 音を鳴らす関数
-  const playBeep = (
+  const playBeep = async (
     frequency: number = 800,
     duration: number = 200,
     delay: number = 0
   ) => {
     if (!soundEnabled || !audioContextRef.current) return;
+
+    // モバイル対応: AudioContextがsuspendedの場合はresume
+    await ensureAudioContext();
 
     const audioContext = audioContextRef.current;
     const startTime = audioContext.currentTime + delay / 1000;
@@ -56,12 +70,14 @@ export default function App() {
   };
 
   // 連続で音を鳴らす関数
-  const playBeeps = (
+  const playBeeps = async (
     count: number,
     frequency: number = 800,
     duration: number = 200,
     interval: number = 150
   ) => {
+    // 最初の音を鳴らす前にAudioContextを有効化
+    await ensureAudioContext();
     for (let i = 0; i < count; i++) {
       playBeep(frequency, duration, i * interval);
     }
@@ -196,7 +212,9 @@ export default function App() {
     };
   }, [isRunning, state, countdownSeconds, intervalSeconds]);
 
-  const handleStart = () => {
+  const handleStart = async () => {
+    // モバイル対応: タイマー開始時にAudioContextを有効化
+    await ensureAudioContext();
     setIsRunning(true);
     if (startWithInterval) {
       setState('interval');
