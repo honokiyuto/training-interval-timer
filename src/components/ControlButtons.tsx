@@ -1,3 +1,6 @@
+import { Pause, Play, RotateCcw } from 'lucide-react';
+import { clearGlass } from '../hooks/useLiquidGlass';
+
 type Props = {
   isIdle: boolean;
   isRunning: boolean;
@@ -7,11 +10,13 @@ type Props = {
   onReset: () => void;
 };
 
+// ガラスはinit時に登録した要素にしか効かないので、ボタンは常に2つ置き
+// 状態によってラベルと動作だけを切り替える
+const glassButton = (disabled: boolean) =>
+  clearGlass(56, { button: !disabled });
+
 const base =
-  'flex-1 text-white font-medium py-3 px-6 rounded-lg transition-colors shadow-sm';
-const blue = `${base} bg-blue-600 hover:bg-blue-700`;
-const red = `${base} bg-red-600 hover:bg-red-700`;
-const gray = `${base} bg-gray-600 hover:bg-gray-700`;
+  'isolate mt-4 flex h-14 items-center justify-center gap-2 rounded-full font-semibold text-white [text-shadow:0_1px_3px_rgb(0_0_0/0.4)] [&>svg]:drop-shadow-[0_1px_2px_rgb(0_0_0/0.4)] disabled:opacity-40 disabled:cursor-not-allowed';
 
 export function ControlButtons({
   isIdle,
@@ -21,28 +26,33 @@ export function ControlButtons({
   onResume,
   onReset,
 }: Props) {
+  const [label, Icon, onClick] = isIdle
+    ? (['Start', Play, onStart] as const)
+    : isRunning
+      ? (['Pause', Pause, onStop] as const)
+      : (['Resume', Play, onResume] as const);
+
   return (
-    <div className="flex gap-3">
-      {isIdle ? (
-        <button onClick={onStart} className={blue}>
-          開始
-        </button>
-      ) : (
-        <>
-          {isRunning ? (
-            <button onClick={onStop} className={red}>
-              停止
-            </button>
-          ) : (
-            <button onClick={onResume} className={blue}>
-              再開
-            </button>
-          )}
-          <button onClick={onReset} className={gray}>
-            リセット
-          </button>
-        </>
-      )}
-    </div>
+    <>
+      <button
+        type="button"
+        onClick={onClick}
+        {...glassButton(false)}
+        className={`${base} col-[1/3] row-start-5`}
+      >
+        <Icon className="size-5 fill-current" />
+        {label}
+      </button>
+      <button
+        type="button"
+        onClick={onReset}
+        disabled={isIdle}
+        {...glassButton(isIdle)}
+        className={`${base} col-[4/6] row-start-5`}
+      >
+        <RotateCcw className="size-5" />
+        Reset
+      </button>
+    </>
   );
 }

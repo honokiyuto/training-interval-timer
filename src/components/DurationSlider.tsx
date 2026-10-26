@@ -19,8 +19,12 @@ export function DurationSlider({
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        {label}: {value}秒
+      <label className="flex justify-between text-sm font-medium text-white mb-3">
+        <span className="flex items-center gap-2">
+          <i className="size-2 rounded-full" style={{ background: color }} />
+          {label}
+        </span>
+        <span className="tabular-nums">{value}s</span>
       </label>
       <input
         type="range"
@@ -29,9 +33,9 @@ export function DurationSlider({
         value={value}
         onChange={(e) => onChange(parseInt(e.target.value, 10))}
         disabled={disabled}
-        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full h-2 rounded-full appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         style={{
-          background: `linear-gradient(to right, ${color} 0%, ${color} ${percent}%, #e5e7eb ${percent}%, #e5e7eb 100%)`,
+          background: `linear-gradient(to right, #fff 0%, #fff ${percent}%, rgba(0,0,0,0.25) ${percent}%, rgba(0,0,0,0.25) 100%)`,
         }}
       />
     </div>

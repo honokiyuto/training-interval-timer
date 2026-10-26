@@ -7,7 +7,7 @@ export function SoundToggle({ enabled, onChange }: Props) {
   return (
     <div>
       <label className="flex items-center justify-between cursor-pointer">
-        <span className="text-sm font-medium text-gray-700">音を鳴らす</span>
+        <span className="text-sm font-medium text-white">Sound</span>
         <button
           type="button"
           role="switch"
@@ -17,8 +17,8 @@ export function SoundToggle({ enabled, onChange }: Props) {
             e.stopPropagation();
             onChange(!enabled);
           }}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer active:scale-95 ${
-            enabled ? 'bg-blue-600' : 'bg-gray-300'
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 cursor-pointer active:scale-95 ${
+            enabled ? 'bg-emerald-400' : 'bg-black/25'
           }`}
         >
           <span
