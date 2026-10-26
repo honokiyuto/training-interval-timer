@@ -1,1 +1,52 @@
 @import "tailwindcss";
+
+/* スクロール端でのバウンス（ラバーバンド）を止める */
+html,
+body {
+  overscroll-behavior: none;
+}
+
+/* スライダーのつまみをガラスUIに合わせて白に。
+   掴んでいる間は少し大きくなり、透明なガラス玉になってトラックが透けて見える */
+input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.25);
+  transition:
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 0.2s,
+    box-shadow 0.2s;
+}
+input[type='range']::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.25);
+  transition:
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 0.2s,
+    box-shadow 0.2s;
+}
+input[type='range']:enabled:active::-webkit-slider-thumb {
+  transform: scale(1.6);
+  background: rgb(255 255 255 / 0.12);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.7),
+    inset 2px 3px 4px rgb(255 255 255 / 0.5),
+    inset -2px -3px 5px rgb(0 0 0 / 0.15),
+    0 4px 10px rgb(0 0 0 / 0.25);
+}
+input[type='range']:enabled:active::-moz-range-thumb {
+  transform: scale(1.6);
+  background: rgb(255 255 255 / 0.12);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.7),
+    inset 2px 3px 4px rgb(255 255 255 / 0.5),
+    inset -2px -3px 5px rgb(0 0 0 / 0.15),
+    0 4px 10px rgb(0 0 0 / 0.25);
+}
