@@ -4,12 +4,14 @@ import { useEffect, type RefObject } from 'react';
 // ガラスにする要素に渡すprops。要素はroot（App）の直接の子である必要がある。
 // 既定はカード用で、liquid-glass.ybouane.com の「Dark Glass」相当。
 // ぼかしなし（Regular Glass）だと背景の模様が文字の裏で透けて読めないため、軽くぼかして暗くする。
-// 屈折・縁の厚みなどはライブラリの既定値のままにしてガラスらしさを残す
+// 屈折（既定値0.69）と色収差（既定値0.05）を強め、縁で背景が大きく曲がり虹色ににじむようにする
 export const glass = (config: object) => ({
   'data-glass': '',
   'data-config': JSON.stringify({
-    blurAmount: 0.4,
+    blurAmount: 0.9,
     brightness: 0,
+    refraction: 1,
+    chromAberration: 0.3,
     // 縁の光（既定値0.05）を強めて輪郭を際立たせる
     edgeHighlight: 0.1,
     ...config,
@@ -20,7 +22,7 @@ export const glass = (config: object) => ({
 export const clearGlass = (height: number, config: object = {}) =>
   glass({
     button: true,
-    blurAmount: 0.3,
+    blurAmount: 0.6,
     brightness: -0.1,
     cornerRadius: height / 2,
     ...config,
