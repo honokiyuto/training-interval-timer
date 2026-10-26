@@ -226,10 +226,14 @@ export default function App() {
     lastPlayedSecondRef.current = null;
   };
 
+  // 一時停止: 状態と残り時間は保持する
   const handleStop = () => {
     setIsRunning(false);
-    setState('idle');
-    setCurrentTime(0);
+  };
+
+  const handleResume = async () => {
+    await ensureAudioContext();
+    setIsRunning(true);
   };
 
   const handleReset = () => {
@@ -418,7 +422,7 @@ export default function App() {
 
         {/* コントロールボタン */}
         <div className="flex gap-3">
-          {!isRunning ? (
+          {state === 'idle' ? (
             <button
               onClick={handleStart}
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors shadow-sm"
@@ -427,12 +431,21 @@ export default function App() {
             </button>
           ) : (
             <>
-              <button
-                onClick={handleStop}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-6 rounded-lg transition-colors shadow-sm"
-              >
-                停止
-              </button>
+              {isRunning ? (
+                <button
+                  onClick={handleStop}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-6 rounded-lg transition-colors shadow-sm"
+                >
+                  停止
+                </button>
+              ) : (
+                <button
+                  onClick={handleResume}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors shadow-sm"
+                >
+                  再開
+                </button>
+              )}
               <button
                 onClick={handleReset}
                 className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-6 rounded-lg transition-colors shadow-sm"
